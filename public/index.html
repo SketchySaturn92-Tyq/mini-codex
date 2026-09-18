@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>mini-codex</title>
+<!-- 零依赖：只加载本目录下的两个静态文件，不引任何 CDN -->
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ===== 顶栏：标题 / 状态徽标 / 设置 ===== -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">mini-codex</span>
+  </div>
+
+  <div class="badges" id="badges">
+    <span class="badge" title="当前项目目录">
+      <span class="badge-key">项目目录</span>
+      <span class="badge-val mono" id="badge-root">读取中…</span>
+    </span>
+    <span class="badge" title="当前使用的模型">
+      <span class="badge-key">模型</span>
+      <span class="badge-val mono" id="badge-model">—</span>
+    </span>
+    <span class="badge" title="权限档位：只读 / 询问 / 全自动">
+      <span class="badge-key">权限</span>
+      <span class="badge-val" id="badge-policy">—</span>
+    </span>
+  </div>
+
+  <div class="topbar-actions">
+    <span class="link-state" id="link-state"></span>
+    <button type="button" class="btn btn-ghost" id="btn-settings">设置</button>
+  </div>
+</header>
+
+<!-- ===== 主区：左对话 / 右时间线 ===== -->
+<main class="layout">
+
+  <!-- 对话区 -->
+  <section class="chat-pane">
+    <div class="pane-head">
+      <span class="pane-title">对话</span>
+      <div class="pane-head-actions">
+        <span class="pane-meta" id="chat-meta"></span>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-history">历史会话</button>
+      </div>
+      <!-- 历史会话下拉列表 -->
+      <div class="popover" id="history-popover" hidden>
+        <div class="popover-head">
+          <span>历史会话</span>
+          <button type="button" class="btn-icon" id="btn-history-close" title="关闭">×</button>
+        </div>
+        <div class="popover-body" id="history-list">
+          <div class="popover-empty">加载中…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-scroll" id="chat-scroll">
+      <!-- 实时对话 -->
+      <div class="chat-list" id="chat-list"></div>
+      <!-- 只读回看某次历史会话 -->
+      <div class="chat-list replay" id="replay-list" hidden>
+        <div class="replay-bar">
+          <span class="replay-file mono" id="replay-file"></span>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-replay-exit">返回对话</button>
+        </div>
+        <div id="replay-events"></div>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="composer" id="composer">
+      <textarea id="input" rows="1" placeholder="描述你要做的事，Enter 发送，Shift+Enter 换行。例如：在这个文件夹建一个 hello.js 并运行看看" ></textarea>
+      <button type="button" class="btn btn-primary" id="btn-send">发送</button>
+    </div>
+    <!-- 回看模式下替换输入区的提示条 -->
+    <div class="composer composer-locked" id="composer-locked" hidden>
+      <span>正在只读回看历史会话，无法发送新消息。</span>
+    </div>
+  </section>
+
+  <!-- 右侧栏：审批 + 运行时间线 -->
+  <aside class="side-pane">
+    <div class="pane-head">
+      <span class="pane-title">本次运行</span>
+      <span class="pane-meta" id="run-meta"></span>
+    </div>
+
+    <div class="side-scroll">
+      <!-- 等待确认 -->
+      <section class="approval-zone" id="approval-zone" hidden>
+        <div class="zone-title">等待你确认</div>
+        <div id="approval-list"></div>
+      </section>
+
+      <!-- 工具调用时间线 -->
+      <section class="timeline">
+        <div class="zone-title">时间线</div>
+        <div class="timeline-empty" id="timeline-empty">还没有工具调用。</div>
+        <div id="timeline-list"></div>
+      </section>
+    </div>
+
+    <div class="run-stats" id="run-stats"></div>
+  </aside>
+</main>
+
+<!-- ===== 设置抽屉 ===== -->
+<div class="mask" id="settings-mask" hidden></div>
+<aside class="drawer" id="settings-drawer" hidden aria-label="设置">
+  <div class="drawer-head">
+    <span class="drawer-title">设置</span>
+    <button type="button" class="btn-icon" id="btn-settings-close" title="关闭">×</button>
+  </div>
+
+  <div class="drawer-body">
+    <label class="field">
+      <span class="field-label">接口地址 baseUrl</span>
+      <input type="text" id="set-baseurl" class="mono" placeholder="https://api.openai.com/v1" spellcheck="false" />
+      <span class="field-hint">CatsCo 平台自带的地址：https://relay.catsco.cc/v1（用「我的 Key」里那把 sk- 开头的钥匙）。其他可选：DeepSeek → https://api.deepseek.com/v1　通义 → https://dashscope.aliyuncs.com/compatible-mode/v1　月之暗面 → https://api.moonshot.cn/v1。</span>
+    </label>
+
+    <label class="field">
+      <span class="field-label">工作目录 workdir</span>
+      <input type="text" id="set-workdir" class="mono" placeholder="留空 = 只能用 mini-codex 这个项目目录" spellcheck="false" />
+      <span class="field-hint">agent 只允许在这个目录里活动。想让它整理桌面就填 ~/Desktop，想管整个个人文件夹就填 ~。范围越大，能改到的东西越多，请配合上面的权限档位一起考虑。</span>
+    </label>
+
+    <label class="field">
+      <span class="field-label">模型名 model</span>
+      <input type="text" id="set-model" class="mono" placeholder="gpt-4o-mini" spellcheck="false" />
+    </label>
+
+    <label class="field">
+      <span class="field-label">快速模型 fastModel（可选）</span>
+      <input type="text" id="set-fastmodel" class="mono" placeholder="留空则与上面一致" spellcheck="false" />
+    </label>
+
+    <label class="field">
+      <span class="field-label">最多轮数 maxTurns</span>
+      <input type="number" id="set-maxturns" class="mono" min="1" max="200" step="1" placeholder="60" />
+      <span class="field-hint">它最多来回多少轮（一轮 = 问一次模型 + 做一次动手）。复杂任务会需要更多轮；数字太大遇到卡死会拖很久，程序里另有"同一工具连挂 5 次就停"的保护。</span>
+    </label>
+
+    <label class="field">
+      <span class="field-label">密钥 apiKey</span>
+      <input type="password" id="set-apikey" class="mono" placeholder="sk-…" spellcheck="false" autocomplete="off" />
+      <span class="field-hint warn">密钥会保存在本机的配置文件里（明文）。请只在自己的电脑上填写，不要用共享机器。</span>
+    </label>
+
+    <div class="field">
+      <span class="field-label">权限档位 policy</span>
+      <div class="radios">
+        <label class="radio">
+          <input type="radio" name="policy" value="readonly" />
+          <span><b>只读</b>　只看不改，写文件和命令一律拒绝</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="policy" value="ask" />
+          <span><b>询问</b>　改动前先问你（默认）</span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="policy" value="auto" />
+          <span><b>全自动</b>　不再询问，危险命令仍会被拦</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">扩展能力（默认关闭）</span>
+      <label class="radio">
+        <input type="checkbox" id="set-allow-network" />
+        <span><b>允许联网</b>　可以抓网页、上网搜索（只允许公网地址，内网与本机被挡）</span>
+      </label>
+      <label class="radio">
+        <input type="checkbox" id="set-allow-desktop" />
+        <span><b>允许操作桌面</b>　可以打开文件或网址、截屏、读写剪贴板、发通知、跑 AppleScript</span>
+      </label>
+      <label class="radio">
+        <input type="checkbox" id="set-mirror" />
+        <span><b>镜像到终端窗口</b>　agent 执行的命令会实时显示在一个 Terminal 窗口里，方便你盯着看（只显示，不会重复执行）</span>
+      </label>
+      <span class="field-hint">两项默认都是关的。打开后，在「询问」档下每次动作仍会先弹卡片让你点允许；危险命令照样被拦。首次截屏或模拟按键，需要到「系统设置 → 隐私与安全性」给终端开对应权限。</span>
+    </div>
+  </div>
+
+  <div class="drawer-foot">
+    <button type="button" class="btn btn-primary" id="btn-save-settings">保存</button>
+    <button type="button" class="btn btn-ghost" id="btn-test-conn">测试连接</button>
+    <span class="drawer-msg" id="settings-msg"></span>
+  </div>
+</aside>
+
+<!-- 轻提示 -->
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

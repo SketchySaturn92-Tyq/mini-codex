@@ -1,0 +1,18 @@
+{
+  "_说明": "把本文件复制成 config.json 后修改。密钥建议放环境变量，不要直接写在文件里。",
+  "baseUrl": "https://api.openai.com/v1",
+  "model": "gpt-4o-mini",
+  "_其他可选接口示例": [
+    "https://api.deepseek.com/v1",
+    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "https://api.moonshot.cn/v1",
+    "http://localhost:11434/v1"
+  ],
+  "apiKeyEnv": "MINI_CODEX_API_KEY",
+  "apiKey": "",
+  "policy": "ask",
+  "maxTurns": 60,
+  "budgetTokens": 24000,
+  "keepRecent": 8,
+  "toolTimeoutMs": 60000
+}

@@ -1,0 +1,17 @@
+{
+  "name": "mini-codex",
+  "version": "0.2.0",
+  "private": true,
+  "description": "一个最小可用的本地编码助手：模型 + 工具 + 循环 + 上下文管理，零第三方依赖。",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "mini-codex": "bin/mini-codex.js"
+  },
+  "scripts": {
+    "start": "node bin/mini-codex.js",
+    "test": "node tests/offline.test.js && node tests/features.test.js"
+  }
+}
