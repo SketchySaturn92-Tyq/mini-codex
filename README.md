@@ -1,3 +1,5 @@
+**[中文](README.md) · [English](README.en.md)**
+
 # mini-codex
 
 一个最小可用的本地编码助手。零第三方依赖，只用 Node 自带的模块。
